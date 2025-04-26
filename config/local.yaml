@@ -1,0 +1,8 @@
+env: "local" # local, dev, prod
+storage_path: "host=localhost user=admin password=123456 dbname=postgres port=5432 sslmode=disable"
+http_server:
+  address: "localhost:8080"
+  timeout: 4s
+  idle_timeout: 60s
+  user: "myuser"
+  password: "mypass"

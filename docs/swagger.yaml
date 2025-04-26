@@ -1,0 +1,222 @@
+basePath: /api/v1
+definitions:
+  entities.AuthResponse:
+    description: AuthResponse contains the access and refresh tokens
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  entities.ErrorResponse:
+    description: ErrorResponse structure
+    properties:
+      details:
+        type: string
+      error:
+        type: string
+    type: object
+  entities.LoginRequest:
+    description: LoginRequest model
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  entities.LogoutRequest:
+    description: LogoutRequest model
+    properties:
+      userId:
+        type: integer
+    required:
+    - userId
+    type: object
+  entities.RefreshTokenRequest:
+    description: RefreshTokenRequest model
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  entities.RegisterRequest:
+    description: RegisterRequest model
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  entities.User:
+    description: User model
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a banking app server.
+  title: Bank App API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Log in using email and password
+      parameters:
+      - description: User login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/entities.AuthResponse'
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Login user
+      tags:
+      - authentication
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out the user by invalidating the session or token
+      parameters:
+      - description: Logout request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Log out user
+      tags:
+      - authentication
+  /me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the authenticated user's data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User data retrieved successfully
+          schema:
+            $ref: '#/definitions/entities.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Get user information
+      tags:
+      - user
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes the JWT access and refresh tokens
+      parameters:
+      - description: Refresh token request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens successfully refreshed
+          schema:
+            $ref: '#/definitions/entities.AuthResponse'
+        "400":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Refresh JWT token
+      tags:
+      - authentication
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Register Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.User'
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Registering user
+      tags:
+      - authentication
+swagger: "2.0"
