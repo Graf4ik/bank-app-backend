@@ -46,16 +46,6 @@ type AuthResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-// User represents a user in the system.
-// @Description User model
-// @example { "id": 1, "email": "user@example.com", "username": "user1", password: "123456" }
-type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Email    string `gorm:"unique"`
-	Username string
-	Password string
-}
-
 // ErrorResponse represents the error that is returned when the request fails
 // @Description ErrorResponse structure
 // @example { "error": "Invalid request", "details": "Detailed error message" }

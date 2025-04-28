@@ -1,4 +1,4 @@
-package authService
+package token
 
 import (
 	"bank-app-backend/internal/entities"

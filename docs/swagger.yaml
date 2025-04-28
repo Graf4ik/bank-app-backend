@@ -1,5 +1,21 @@
 basePath: /api/v1
 definitions:
+  entities.AccountResponse:
+    description: Response returned when retrieving account information.
+    properties:
+      balance:
+        type: number
+      currency:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
   entities.AuthResponse:
     description: AuthResponse contains the access and refresh tokens
     properties:
@@ -7,6 +23,18 @@ definitions:
         type: string
       refreshToken:
         type: string
+    type: object
+  entities.CreateAccountRequest:
+    description: Request payload for creating a new user account with a specified
+      type and currency.
+    properties:
+      currency:
+        type: string
+      type:
+        type: string
+    required:
+    - currency
+    - type
     type: object
   entities.ErrorResponse:
     description: ErrorResponse structure
@@ -35,6 +63,12 @@ definitions:
     required:
     - userId
     type: object
+  entities.MessageResponse:
+    description: Success message response
+    properties:
+      message:
+        type: string
+    type: object
   entities.RefreshTokenRequest:
     description: RefreshTokenRequest model
     properties:
@@ -57,6 +91,14 @@ definitions:
     - password
     - username
     type: object
+  entities.UpdateUserRequest:
+    description: Update user model
+    properties:
+      email:
+        type: string
+      username:
+        type: string
+    type: object
   entities.User:
     description: User model
     properties:
@@ -69,6 +111,16 @@ definitions:
       username:
         type: string
     type: object
+  entities.UserResponse:
+    description: Public user information without sensitive fields like password.
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -76,6 +128,128 @@ info:
   title: Bank App API
   version: "1.0"
 paths:
+  /auth/accounts:
+    get:
+      description: Returns a list of accounts belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.AccountResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all user accounts
+      tags:
+      - accounts
+    post:
+      consumes:
+      - application/json
+      description: Creates a new account for the authenticated user
+      parameters:
+      - description: Account creation data
+        in: body
+        name: account
+        required: true
+        schema:
+          $ref: '#/definitions/entities.CreateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.AccountResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Failed to create account
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new account
+      tags:
+      - accounts
+  /auth/accounts/{id}:
+    get:
+      description: Returns a specific account by ID if it belongs to the authenticated
+        user
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.AccountResponse'
+        "400":
+          description: Invalid account ID
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "404":
+          description: Account not found
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a user account by ID
+      tags:
+      - accounts
+    patch:
+      description: Closes an account if its balance is zero
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Account closed successfully
+          schema:
+            $ref: '#/definitions/entities.MessageResponse'
+        "400":
+          description: Cannot close account
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Close a user account
+      tags:
+      - accounts
   /login:
     post:
       consumes:
@@ -105,7 +279,7 @@ paths:
             $ref: '#/definitions/entities.ErrorResponse'
       summary: Login user
       tags:
-      - authentication
+      - Authentication
   /logout:
     post:
       consumes:
@@ -136,7 +310,7 @@ paths:
             $ref: '#/definitions/entities.ErrorResponse'
       summary: Log out user
       tags:
-      - authentication
+      - Authentication
   /me:
     get:
       consumes:
@@ -148,7 +322,7 @@ paths:
         "200":
           description: User data retrieved successfully
           schema:
-            $ref: '#/definitions/entities.User'
+            $ref: '#/definitions/entities.UserResponse'
         "401":
           description: Unauthorized
           schema:
@@ -159,7 +333,7 @@ paths:
             $ref: '#/definitions/entities.ErrorResponse'
       summary: Get user information
       tags:
-      - user
+      - Users
   /refresh:
     post:
       consumes:
@@ -189,7 +363,7 @@ paths:
             $ref: '#/definitions/entities.ErrorResponse'
       summary: Refresh JWT token
       tags:
-      - authentication
+      - Authentication
   /register:
     post:
       consumes:
@@ -218,5 +392,65 @@ paths:
             $ref: '#/definitions/entities.ErrorResponse'
       summary: Registering user
       tags:
-      - authentication
+      - Authentication
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/entities.UserResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Get all users
+      tags:
+      - Users
+  /users/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Updates a user's information by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated user information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/entities.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            $ref: '#/definitions/entities.UserResponse'
+        "400":
+          description: Invalid input or user ID
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/entities.ErrorResponse'
+      summary: Update a user
+      tags:
+      - Users
 swagger: "2.0"

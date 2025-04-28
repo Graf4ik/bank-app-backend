@@ -1,7 +1,8 @@
-package authService
+package services
 
 import (
 	"bank-app-backend/internal/entities"
+	"bank-app-backend/internal/lib/token"
 	"bank-app-backend/internal/repository"
 	"context"
 	"fmt"
@@ -13,19 +14,18 @@ type AuthService interface {
 	RegisterUser(ctx context.Context, req entities.RegisterRequest) (*entities.User, error)
 	Login(ctx context.Context, req entities.LoginRequest) (*entities.AuthResponse, error)
 	Logout(ctx context.Context, userID uint) error
-	Me(ctx context.Context, userID uint) (*entities.User, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*entities.AuthResponse, error)
 }
 
 type authService struct {
-	repo repository.AuthRepository
+	repo repository.UsersRepository
 }
 
-func NewAuthService(r repository.AuthRepository) AuthService {
+func NewAuthService(r repository.UsersRepository) AuthService {
 	return &authService{repo: r}
 }
 
-func (a *authService) RegisterUser(ctx context.Context, req entities.RegisterRequest) (*entities.User, error) {
+func (s *authService) RegisterUser(ctx context.Context, req entities.RegisterRequest) (*entities.User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %v", err)
@@ -38,15 +38,15 @@ func (a *authService) RegisterUser(ctx context.Context, req entities.RegisterReq
 	}
 
 	fmt.Println("Password from DB:", user.Password)
-	if err := a.repo.CreateUser(ctx, user); err != nil {
+	if err := s.repo.CreateUser(ctx, user); err != nil {
 		return nil, fmt.Errorf("could not create user: %v", err)
 	}
 
 	return user, nil
 }
 
-func (a *authService) Login(ctx context.Context, req entities.LoginRequest) (*entities.AuthResponse, error) {
-	user, err := a.repo.FindByEmail(ctx, req.Email)
+func (s *authService) Login(ctx context.Context, req entities.LoginRequest) (*entities.AuthResponse, error) {
+	user, err := s.repo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("could not find user: %v", err)
 	}
@@ -56,12 +56,12 @@ func (a *authService) Login(ctx context.Context, req entities.LoginRequest) (*en
 		return nil, fmt.Errorf("invalid pasword: %v", err)
 	}
 
-	accessToken, refreshToken, err := GenerateTokens(user)
+	accessToken, refreshToken, err := token.GenerateTokens(user)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate tokens: %v", err)
 	}
 
-	err = a.repo.SaveRefreshToken(ctx, user.ID, refreshToken)
+	err = s.repo.SaveRefreshToken(ctx, user.ID, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("could not save refresh token: %v", err)
 	}
@@ -72,24 +72,16 @@ func (a *authService) Login(ctx context.Context, req entities.LoginRequest) (*en
 	}, nil
 }
 
-func (a *authService) Logout(ctx context.Context, userID uint) error {
-	return a.repo.DeleteRefreshToken(ctx, userID)
+func (s *authService) Logout(ctx context.Context, userID uint) error {
+	return s.repo.DeleteRefreshToken(ctx, userID)
 }
 
-func (a *authService) Me(ctx context.Context, userID uint) (*entities.User, error) {
-	user, err := a.repo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("user not found: %v", err)
-	}
-	return user, nil
-}
-
-func (a *authService) RefreshToken(ctx context.Context, refreshToken string) (*entities.AuthResponse, error) {
+func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*entities.AuthResponse, error) {
 	token, err := jwt.Parse(refreshToken, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return refreshSecret, nil
+		return token.refreshSecret, nil
 	})
 
 	if err != nil || !token.Valid {
@@ -107,17 +99,17 @@ func (a *authService) RefreshToken(ctx context.Context, refreshToken string) (*e
 	}
 	userID := uint(userIDFloat)
 
-	user, err := a.repo.FindByID(ctx, userID)
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %v", err)
 	}
 
-	accessToken, newRefreshToken, err := GenerateTokens(user)
+	accessToken, newRefreshToken, err := token.GenerateTokens(user)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate tokens: %v", err)
 	}
 
-	if err := a.repo.SaveRefreshToken(ctx, user.ID, newRefreshToken); err != nil {
+	if err := s.repo.SaveRefreshToken(ctx, user.ID, newRefreshToken); err != nil {
 		return nil, fmt.Errorf("failed to save refresh token: %v", err)
 	}
 

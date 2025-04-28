@@ -2,7 +2,7 @@ package http
 
 import (
 	"bank-app-backend/internal/entities"
-	"bank-app-backend/internal/services/authService"
+	"bank-app-backend/internal/services"
 	"github.com/gin-gonic/gin"
 	_ "github.com/golang-jwt/jwt/v5"
 	"net/http"
@@ -10,16 +10,16 @@ import (
 )
 
 type AuthHandler struct {
-	service authService.AuthService
+	service services.AuthService
 }
 
-func NewAuthHandler(s authService.AuthService) *AuthHandler {
+func NewAuthHandler(s services.AuthService) *AuthHandler {
 	return &AuthHandler{service: s}
 }
 
 // @Summary      Registering user
 // @Description
-// @Tags         authentication
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        request body entities.RegisterRequest true "Register Request"
@@ -52,7 +52,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // @Summary      Login user
 // @Description  Log in using email and password
-// @Tags         authentication
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        request body entities.LoginRequest true "User login request"
@@ -78,7 +78,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // @Summary      Refresh JWT token
 // @Description  Refreshes the JWT access and refresh tokens
-// @Tags         authentication
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        request body entities.RefreshTokenRequest true "Refresh token request"
@@ -105,7 +105,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 // @Summary      Log out user
 // @Description  Logs out the user by invalidating the session or token
-// @Tags         authentication
+// @Tags         Authentication
 // @Accept       json
 // @Produce      json
 // @Param        request body entities.LogoutRequest true "Logout request"
@@ -128,35 +128,4 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
-}
-
-// @Summary      Get user information
-// @Description  Retrieves the authenticated user's data
-// @Tags         user
-// @Accept       json
-// @Produce      json
-// @Success      200 {object} entities.User "User data retrieved successfully"
-// @Failure      401 {object} entities.ErrorResponse "Unauthorized"
-// @Failure      404 {object} entities.ErrorResponse "User not found"
-// @Router       /me [get]
-func (h *AuthHandler) Me(c *gin.Context) {
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	userID := userIDInterface.(uint)
-
-	user, err := h.service.Me(c.Request.Context(), userID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"id":       user.ID,
-		"email":    user.Email,
-		"username": user.Username,
-	})
 }
