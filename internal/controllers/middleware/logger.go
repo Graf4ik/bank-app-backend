@@ -13,7 +13,7 @@ func ZapLoggerMiddleware() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		c.Next()
 
-		logger.Log.Info("request",
+		lib.Log.Info("request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
 			zap.Int("status", c.Writer.Status()),

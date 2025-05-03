@@ -1,4 +1,4 @@
-package token
+package lib
 
 import (
 	"bank-app-backend/internal/entities"
@@ -8,16 +8,16 @@ import (
 
 var (
 	// TODO: вынести в env
-	accessSecret  = []byte("jwt_access_secret")
-	refreshSecret = []byte("jwt_refresh_secret")
+	AccessSecret  = []byte("jwt_access_secret")
+	RefreshSecret = []byte("jwt_refresh_secret")
 )
 
 func GenerateTokens(user *entities.User) (accessToken string, refreshToken string, err error) {
-	accessToken, err = generateJWT(user, accessSecret, time.Minute*15)
+	accessToken, err = generateJWT(user, AccessSecret, time.Minute*15)
 	if err != nil {
 		return
 	}
-	refreshToken, err = generateJWT(user, refreshSecret, time.Hour*24*7)
+	refreshToken, err = generateJWT(user, RefreshSecret, time.Hour*24*7)
 	return
 }
 

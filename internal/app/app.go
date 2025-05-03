@@ -6,11 +6,11 @@ import (
 	"bank-app-backend/internal/controllers/http"
 	"bank-app-backend/internal/controllers/middleware"
 	"bank-app-backend/internal/db"
-	"bank-app-backend/internal/lib/logger"
+	lib "bank-app-backend/internal/lib/logger"
+	redis "bank-app-backend/internal/lib/redis"
 	"bank-app-backend/internal/repository"
 	"bank-app-backend/internal/server"
 	"bank-app-backend/internal/services"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,6 +42,8 @@ func Run() {
 
 	database := setupDatabase(cfg.Storage, loggerZap)
 
+	redisClient := redis.NewRedisClient(cfg.Redis.Address, cfg.Redis.Password, cfg.Redis.DB)
+
 	loggerZap.Info("Starting bank-app",
 		zap.String("env", cfg.Env),
 	)
@@ -50,13 +52,13 @@ func Run() {
 
 	r := gin.Default()
 	r.Use(middleware.ZapLoggerMiddleware())
-	r.Use(PrometheusMiddleware(requestCount))
+	r.Use(middleware.PrometheusMiddleware(requestCount))
 
-	authRepo := repository.NewUsersRepository(database)
-	authorizationService := services.NewAuthService(authRepo)
+	authRepo := repository.NewUsersRepository(database, redisClient)
+	authorizationService := services.NewAuthService(authRepo, redisClient)
 	authHandlers := http.NewAuthHandler(authorizationService)
 
-	usersRepo := repository.NewUsersRepository(database)
+	usersRepo := repository.NewUsersRepository(database, redisClient)
 	usersService := services.NewUsersService(usersRepo)
 	usersHandlers := http.NewUsersHandler(usersService)
 
@@ -95,8 +97,8 @@ func Run() {
 }
 
 func setupLogger(env string) *zap.Logger {
-	logger.InitLogger(env)
-	return logger.Log
+	lib.InitLogger(env)
+	return lib.Log
 }
 
 func setupDatabase(path string, logger *zap.Logger) *gorm.DB {
@@ -105,13 +107,4 @@ func setupDatabase(path string, logger *zap.Logger) *gorm.DB {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	return database
-}
-
-func PrometheusMiddleware(requestCount *prometheus.CounterVec) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-		statusCode := c.Writer.Status()
-		method := c.Request.Method
-		requestCount.WithLabelValues(method, fmt.Sprintf("%d", statusCode)).Inc()
-	}
 }

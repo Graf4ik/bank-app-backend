@@ -2,6 +2,7 @@ package services
 
 import (
 	"bank-app-backend/internal/entities"
+	redis "bank-app-backend/internal/lib/redis"
 	"bank-app-backend/internal/lib/token"
 	"bank-app-backend/internal/repository"
 	"context"
@@ -18,11 +19,15 @@ type AuthService interface {
 }
 
 type authService struct {
-	repo repository.UsersRepository
+	repo  repository.UsersRepository
+	redis *redis.Client
 }
 
-func NewAuthService(r repository.UsersRepository) AuthService {
-	return &authService{repo: r}
+func NewAuthService(r repository.UsersRepository, redisClient *redis.Client) AuthService {
+	return &authService{
+		repo:  r,
+		redis: redisClient,
+	}
 }
 
 func (s *authService) RegisterUser(ctx context.Context, req entities.RegisterRequest) (*entities.User, error) {
@@ -56,7 +61,7 @@ func (s *authService) Login(ctx context.Context, req entities.LoginRequest) (*en
 		return nil, fmt.Errorf("invalid pasword: %v", err)
 	}
 
-	accessToken, refreshToken, err := token.GenerateTokens(user)
+	accessToken, refreshToken, err := lib.GenerateTokens(user)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate tokens: %v", err)
 	}
@@ -81,7 +86,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*e
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return token.refreshSecret, nil
+		return lib.RefreshSecret, nil
 	})
 
 	if err != nil || !token.Valid {
@@ -104,7 +109,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*e
 		return nil, fmt.Errorf("user not found: %v", err)
 	}
 
-	accessToken, newRefreshToken, err := token.GenerateTokens(user)
+	accessToken, newRefreshToken, err := lib.GenerateTokens(user)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate tokens: %v", err)
 	}

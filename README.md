@@ -56,6 +56,7 @@ go build
 - [github.com/ilyakaznacheev/cleanenv](https://github.com/ilyakaznacheev/cleanenv)
 - [gorm.io/driver/postgres](https://github.com/go-gorm/postgres)
 - [gorm.io/gorm](https://github.com/go-gorm/gorm)
+- [github.com/redis/go-redis/v9](https://github.com/redis/go-redis)
 
 ## Запуск
 

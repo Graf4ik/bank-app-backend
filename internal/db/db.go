@@ -15,11 +15,11 @@ func InitDB(path string) (*gorm.DB, error) {
 
 	db, err = gorm.Open(postgres.Open(path), &gorm.Config{})
 	if err != nil {
-		logger.Log.Fatal("Could not connect to database", zap.Error(err))
+		lib.Log.Fatal("Could not connect to database", zap.Error(err))
 	}
 
-	if err := db.AutoMigrate(&entities.User{}, &entities.RefreshToken{}, &entities.Account{}); err != nil {
-		logger.Log.Fatal("Could not migrate database", zap.Error(err))
+	if err := db.AutoMigrate(&entities.User{}, &entities.Account{}); err != nil {
+		lib.Log.Fatal("Could not migrate database", zap.Error(err))
 	}
 
 	return db, nil

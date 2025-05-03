@@ -11,6 +11,13 @@ type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	Storage    string `yaml:"storage_path" env-required:"true"`
 	HTTPServer `yaml:"http_server"`
+	Redis      RedisConfig `yaml:"redis"`
+}
+
+type RedisConfig struct {
+	Address  string `yaml:"address" env-default:"localhost:6379"`
+	Password string `yaml:"password" env-default:""`
+	DB       int    `yaml:"db" env-default:"0"`
 }
 
 type HTTPServer struct {
