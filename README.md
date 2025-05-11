@@ -8,21 +8,26 @@
 
 ### Endpoints
 
-| HTTP method  | Endpoint              | Описание                              |
-|--------------|-----------------------|---------------------------------------|
-| GET          | `/auth/me`            | Получить профиль пользователя         |
-| GET          | `/auth/accounts`      | Получить список счетов пользователя   |
-| POST         | `/auth/accounts`      | Создать участника авиамероприятия     |
-| GET          | `/auth/accounts/:id`  | Получить детальную инфу о счёте по ID |
-| PATCH        | `/auth/accounts/:id`  | Закрыть счёт при нулевом балансе      |
-| GET          | `/users`              | Получить список пользователей         |
-| PATCH        | `/users/:id`          | Обновить информацию о пользователе    |
-| POST         | `/register`           | Регистрация пользователя              |
-| POST         | `/login`              | Авторизация пользователя              |
-| POST         | `/refresh`            | Обновление токена авторизации         |
-| POST         | `/logout`             | Выход пользователя                    |
-| GET          | `/swagger/*any`       | Документация swagger                  |
-| GET          | `/metrics`            | Сбор метрик prometheus                |
+| HTTP method  | Endpoint                   | Описание                               |
+|--------------|----------------------------|----------------------------------------|
+| GET          | `/auth/me`                 | Получить профиль пользователя          |
+| GET          | `/auth/accounts`           | Получить список счетов пользователя    |
+| POST         | `/auth/accounts`           | Создать участника авиамероприятия      |
+| GET          | `/auth/accounts/:id`       | Получить детальную инфу о счёте по ID  |
+| GET          | `/auth/accounts/deposit`   | Пополнение счёта                       |
+| PATCH        | `/auth/accounts/:id`       | Закрыть счёт при нулевом балансе       |
+| PATCH        | `/auth/transactions`       | Получить списко транзакций             |
+| PATCH        | `/auth/transfers/internal` | Перевод между своими счетами           |
+| PATCH        | `/auth/transfers/external` | Перевод на другой счёт в этом же банке |
+| PATCH        | `/auth/transactions/:id`   | Детали транзакции                      |
+| GET          | `/users`                   | Получить список пользователей          |
+| PATCH        | `/users/:id`               | Обновить информацию о пользователе     |
+| POST         | `/register`                | Регистрация пользователя               |
+| POST         | `/login`                   | Авторизация пользователя               |
+| POST         | `/refresh`                 | Обновление токена авторизации          |
+| POST         | `/logout`                  | Выход пользователя                     |
+| GET          | `/swagger/*any`            | Документация swagger                   |
+| GET          | `/metrics`                 | Сбор метрик prometheus                 |
 
 Каждый endpoint с префиксом /auth требует токен авторизации
 
@@ -57,6 +62,7 @@ go build
 - [gorm.io/driver/postgres](https://github.com/go-gorm/postgres)
 - [gorm.io/gorm](https://github.com/go-gorm/gorm)
 - [github.com/redis/go-redis/v9](https://github.com/redis/go-redis)
+- [github.com/confluentinc/confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go)
 
 ## Запуск
 

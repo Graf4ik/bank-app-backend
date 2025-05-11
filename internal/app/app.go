@@ -6,6 +6,7 @@ import (
 	"bank-app-backend/internal/controllers/http"
 	"bank-app-backend/internal/controllers/middleware"
 	"bank-app-backend/internal/db"
+	"bank-app-backend/internal/lib/kafka"
 	lib "bank-app-backend/internal/lib/logger"
 	redis "bank-app-backend/internal/lib/redis"
 	"bank-app-backend/internal/repository"
@@ -18,6 +19,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"log"
 )
 
 var (
@@ -50,21 +52,38 @@ func Run() {
 
 	loggerZap.Debug("debug messages are enabled")
 
+	kafkaProdAccountCreated, err := kafka.NewProducer("localhost:9092", "account.created")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	kafkaProdTransactionCompleted, err := kafka.NewProducer("localhost:9092", "transaction.completed")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := gin.Default()
 	r.Use(middleware.ZapLoggerMiddleware())
 	r.Use(middleware.PrometheusMiddleware(requestCount))
 
+	// Репозитории
 	authRepo := repository.NewUsersRepository(database, redisClient)
-	authorizationService := services.NewAuthService(authRepo, redisClient)
-	authHandlers := http.NewAuthHandler(authorizationService)
-
 	usersRepo := repository.NewUsersRepository(database, redisClient)
-	usersService := services.NewUsersService(usersRepo)
-	usersHandlers := http.NewUsersHandler(usersService)
-
 	accountsRepo := repository.NewAccountsRepository(database)
-	accountsService := services.NewAccountsService(accountsRepo)
+	transactionRepo := repository.NewTransactionsRepository(database)
+
+	// Сервисы
+	authorizationService := services.NewAuthService(authRepo, redisClient)
+	usersService := services.NewUsersService(usersRepo)
+	accountsService := services.NewAccountsService(accountsRepo, transactionRepo, kafkaProdAccountCreated)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transferService := services.NewTransfersService(transactionRepo, accountsRepo, kafkaProdTransactionCompleted)
+
+	// Хендлеры
+	authHandlers := http.NewAuthHandler(authorizationService)
+	usersHandlers := http.NewUsersHandler(usersService)
 	accountsHandlers := http.NewAccountsHandler(accountsService)
+	transferHandlers := http.NewTransactionsHandler(transferService, transactionService)
 
 	auth := r.Group("/auth")
 	auth.Use(middleware.JWTAuthMiddleware([]byte("jwt_access_secret")))
@@ -73,8 +92,13 @@ func Run() {
 		auth.GET("/me", usersHandlers.Me)
 		auth.GET("/accounts", accountsHandlers.GetAllByUser)
 		auth.POST("/accounts", accountsHandlers.Create)
+		auth.POST("/accounts/deposit", accountsHandlers.Deposit)
 		auth.GET("/accounts/:id", accountsHandlers.GetByID)
 		auth.PATCH("/accounts/:id", accountsHandlers.CloseAccount)
+		auth.GET("/transactions", transferHandlers.GetTransactions)
+		auth.POST("/transfers/internal", transferHandlers.InternalTransfer)
+		auth.POST("/transfers/external", transferHandlers.ExternalTransfer)
+		auth.GET("/transactions/:id", transferHandlers.GetTransactionById)
 	}
 
 	users := r.Group("/users")

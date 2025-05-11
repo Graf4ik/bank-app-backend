@@ -45,6 +45,14 @@ type AccountResponse struct {
 	Status   string  `json:"status"`
 }
 
+// DepositRequest представляет тело запроса для пополнения счёта.
+// @Description Запрос для пополнения счёта пользователя на определённую сумму.
+// @example { "account_id": 1, "amount": 1000.50 }
+type DepositRequest struct {
+	AccountID uint    `json:"account_id" binding:"required"`
+	Amount    float64 `json:"amount" binding:"required,gt=0"`
+}
+
 // MessageResponse represents a success message response.
 // @Description Success message response
 // @example { "message": "Account closed successfully" }

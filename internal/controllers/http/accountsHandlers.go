@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bank-app-backend/internal/controllers/http/helpers"
 	"bank-app-backend/internal/entities"
 	"bank-app-backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -27,12 +28,11 @@ func NewAccountsHandler(s services.AccountsService) *AccountsHandler {
 // @Failure 500 {object} entities.ErrorResponse "Internal server error"
 // @Router /auth/accounts [get]
 func (h *AccountsHandler) GetAllByUser(c *gin.Context) {
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
-
-	userID := userIDInterface.(uint)
 
 	accounts, err := h.service.GetAll(c.Request.Context(), userID)
 	if err != nil {
@@ -55,13 +55,11 @@ func (h *AccountsHandler) GetAllByUser(c *gin.Context) {
 // @Failure 404 {object} entities.ErrorResponse "Account not found"
 // @Router /auth/accounts/{id} [get]
 func (h *AccountsHandler) GetByID(c *gin.Context) {
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-
-	userID := userIDInterface.(uint)
 
 	accountIDParam := c.Param("id")
 	accountIDUint64, err := strconv.ParseUint(accountIDParam, 10, 64)
@@ -100,11 +98,11 @@ func (h *AccountsHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 	}
 
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
 	}
-	userID := userIDInterface.(uint)
 
 	account, err := h.service.Create(c.Request.Context(), userID, &req)
 	if err != nil {
@@ -112,6 +110,38 @@ func (h *AccountsHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, account.ToResponse())
+}
+
+// Deposit godoc
+// @Summary Deposit to an account
+// @Description Adds money to the user's account
+// @Tags accounts
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param deposit body entities.DepositRequest true "Deposit data"
+// @Success 200 {object} entities.AccountResponse
+// @Failure 400 {object} entities.ErrorResponse "Invalid input or account"
+// @Failure 401 {object} entities.ErrorResponse "Unauthorized"
+// @Router /auth/accounts/deposit [post]
+func (h *AccountsHandler) Deposit(c *gin.Context) {
+	var req entities.DepositRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+	}
+
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	account, err := h.service.Deposit(c.Request.Context(), userID, req.AccountID, req.Amount)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, account.ToResponse())
 }
 
 // CloseAccount godoc
@@ -126,13 +156,11 @@ func (h *AccountsHandler) Create(c *gin.Context) {
 // @Failure 401 {object} entities.ErrorResponse "Unauthorized"
 // @Router /auth/accounts/{id} [patch]
 func (h *AccountsHandler) CloseAccount(c *gin.Context) {
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-
-	userID := userIDInterface.(uint)
 
 	accountIDParam := c.Param("id")
 	accountIDUint64, err := strconv.ParseUint(accountIDParam, 10, 64)

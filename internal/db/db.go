@@ -18,7 +18,7 @@ func InitDB(path string) (*gorm.DB, error) {
 		lib.Log.Fatal("Could not connect to database", zap.Error(err))
 	}
 
-	if err := db.AutoMigrate(&entities.User{}, &entities.Account{}); err != nil {
+	if err := db.AutoMigrate(&entities.User{}, &entities.Account{}, &entities.Transaction{}); err != nil {
 		lib.Log.Fatal("Could not migrate database", zap.Error(err))
 	}
 

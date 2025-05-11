@@ -11,3 +11,7 @@ redis:
   address: localhost:6379
   password: ""
   db: 0
+kafka:
+  brokers: ["localhost:9092"]
+  topic: account.created
+  group_id: bank-app-group

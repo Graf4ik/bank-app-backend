@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bank-app-backend/internal/controllers/http/helpers"
 	"bank-app-backend/internal/entities"
 	"bank-app-backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -27,13 +28,11 @@ func NewUsersHandler(s services.UsersService) *UsersHandler {
 // @Failure      404 {object} entities.ErrorResponse "User not found"
 // @Router       /me [get]
 func (h *UsersHandler) Me(c *gin.Context) {
-	userIDInterface, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	userID, err := helpers.ExtractUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-
-	userID := userIDInterface.(uint)
 
 	user, err := h.service.Me(c.Request.Context(), userID)
 	if err != nil {
